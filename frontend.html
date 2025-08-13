@@ -1,168 +1,135 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>FastAPI File Upload</title>
-  <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap');
-
-    * {
-      box-sizing: border-box;
-    }
-
-    body {
-      font-family: 'Inter', sans-serif;
-      background: linear-gradient(135deg, #667eea, #764ba2);
-      color: #333;
-      margin: 0;
-      padding: 0;
-      min-height: 100vh;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      padding: 40px 20px;
-    }
-
-    .container {
-      background: #fff;
-      border-radius: 12px;
-      max-width: 480px;
-      width: 100%;
-      padding: 30px 40px;
-      box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
-      text-align: center;
-      animation: fadeIn 0.6s ease forwards;
-    }
-
-    h2 {
-      margin-bottom: 24px;
-      font-weight: 600;
-      color: #3f3d56;
-    }
-
-    form {
-      display: flex;
-      flex-direction: column;
-      gap: 20px;
-      align-items: center;
-    }
-
-    input[type="file"] {
-      border: 2px dashed #667eea;
-      padding: 20px;
-      border-radius: 10px;
-      cursor: pointer;
-      width: 100%;
-      transition: background-color 0.3s ease;
-      color: #667eea;
-      font-weight: 600;
-    }
-
-    input[type="file"]:hover {
-      background-color: #f0f4ff;
-    }
-
-    button {
-      background-color: #667eea;
-      color: white;
-      border: none;
-      padding: 14px 0;
-      width: 100%;
-      border-radius: 10px;
-      font-size: 1.1rem;
-      font-weight: 600;
-      cursor: pointer;
-      box-shadow: 0 4px 12px rgb(102 126 234 / 0.4);
-      transition: background-color 0.3s ease, box-shadow 0.3s ease;
-    }
-
-    button:hover {
-      background-color: #5563c1;
-      box-shadow: 0 6px 18px rgb(85 99 193 / 0.6);
-    }
-
-    .response-section {
-      margin-top: 30px;
-      text-align: left;
-    }
-
-    .response-section h3 {
-      margin-bottom: 10px;
-      color: #4a4a4a;
-    }
-
-    pre {
-      background: #f4f6ff;
-      border-radius: 8px;
-      padding: 15px;
-      max-height: 250px;
-      overflow-y: auto;
-      white-space: pre-wrap;
-      word-break: break-word;
-      font-size: 0.95rem;
-      color: #222;
-      box-shadow: inset 0 0 5px #d1d9ff;
-      user-select: text;
-    }
-
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(10px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    @media (max-width: 520px) {
-      .container {
-        padding: 20px;
-      }
-      button {
-        font-size: 1rem;
-      }
-    }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <h2>Upload Files to FastAPI</h2>
-    <form id="uploadForm">
-      <input type="file" id="files" name="files" multiple />
-      <button type="submit">Submit</button>
-    </form>
-    <div class="response-section">
-      <h3>Response:</h3>
-      <pre id="response">No response yet.</pre>
-    </div>
-  </div>
-
-  <script>
-    const form = document.getElementById('uploadForm');
-    const responseBox = document.getElementById('response');
-
-    form.addEventListener('submit', async function (e) {
-      e.preventDefault();
-      const filesInput = document.getElementById('files');
-      if (filesInput.files.length === 0) {
-        responseBox.textContent = "Please select at least one file.";
-        return;
-      }
-      const formData = new FormData();
-      for (const file of filesInput.files) {
-        formData.append('files', file);  // Changed key to 'files' to match backend expectations
-      }
-      responseBox.textContent = "Uploading...";
-      try {
-        const res = await fetch('/api', {
-          method: 'POST',
-          body: formData,
-        });
-        if (!res.ok) {
-          throw new Error(`Server responded with status ${res.status}`);
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Data Analysis</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
         }
-        const data = await res.json();
-        responseBox.textContent = JSON.stringify(data, null, 2);
-      } catch (err) {
-        responseBox.textContent = "Error in frontend: " + err.message;
-      }
-    });
-  </script>
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800">
+
+    <div class="container mx-auto p-4 sm:p-6 md:p-8 max-w-4xl">
+        <header class="text-center mb-8">
+            <h1 class="text-3xl sm:text-4xl font-bold text-gray-900">AI-Powered Data Analysis</h1>
+            <p class="mt-2 text-md text-gray-600">Upload your data files and ask a question to get insights.</p>
+        </header>
+
+        <main>
+            <form id="analysis-form" class="bg-white p-6 rounded-lg shadow-md border border-gray-200">
+                <div class="space-y-6">
+                    <div>
+                        <label for="question" class="block text-sm font-medium text-gray-700 mb-1">Your Question</label>
+                        <input type="text" name="question" id="question" required class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" placeholder="e.g., What is the total sales per region?">
+                    </div>
+
+                    <div>
+                        <label for="files" class="block text-sm font-medium text-gray-700 mb-1">Data Files</label>
+                        <input type="file" name="files" id="files" multiple class="mt-1 block w-full text-sm text-gray-500
+                          file:mr-4 file:py-2 file:px-4
+                          file:rounded-full file:border-0
+                          file:text-sm file:font-semibold
+                          file:bg-indigo-50 file:text-indigo-700
+                          hover:file:bg-indigo-100
+                        "/>
+                        <p class="mt-1 text-xs text-gray-500">Upload CSV, TXT, or other data files.</p>
+                    </div>
+                </div>
+
+                <div class="mt-8 text-center">
+                    <button type="submit" class="inline-flex justify-center items-center py-2 px-6 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors">
+                        Analyze Data
+                    </button>
+                </div>
+            </form>
+
+            <div id="loading-indicator" class="hidden text-center mt-8">
+                <div class="loader inline-block"></div>
+                <p class="mt-2 text-gray-600">Analyzing your data... this may take a moment.</p>
+            </div>
+
+            <div id="results-container" class="hidden mt-8 bg-white p-6 rounded-lg shadow-md border border-gray-200">
+                <h2 class="text-2xl font-bold mb-4">Results</h2>
+                <pre id="results-output" class="bg-gray-100 p-4 rounded-md text-sm overflow-x-auto"></pre>
+            </div>
+
+            <div id="error-container" class="hidden mt-8 bg-red-50 p-4 rounded-lg border border-red-200">
+                 <h2 class="text-lg font-semibold text-red-800 mb-2">An Error Occurred</h2>
+                 <p id="error-message" class="text-red-700"></p>
+            </div>
+
+        </main>
+    </div>
+
+    <script>
+        const form = document.getElementById('analysis-form');
+        const loadingIndicator = document.getElementById('loading-indicator');
+        const resultsContainer = document.getElementById('results-container');
+        const resultsOutput = document.getElementById('results-output');
+        const errorContainer = document.getElementById('error-container');
+        const errorMessage = document.getElementById('error-message');
+
+        form.addEventListener('submit', async (event) => {
+            event.preventDefault();
+
+            // Hide previous results/errors and show loader
+            resultsContainer.classList.add('hidden');
+            errorContainer.classList.add('hidden');
+            loadingIndicator.classList.remove('hidden');
+
+            const formData = new FormData(form);
+            
+            // FastAPI expects files under a 'files' key if you use UploadFile
+            // If your python code expects a specific name for the file field, adjust here.
+            const fileInput = document.getElementById('files');
+            for (const file of fileInput.files) {
+                formData.append('files', file);
+            }
+
+            try {
+                const response = await fetch('/', { // Submitting to the root URL
+                    method: 'POST',
+                    body: formData,
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.message || `Server responded with status ${response.status}`);
+                }
+
+                // Display results
+                resultsOutput.textContent = JSON.stringify(data, null, 2);
+                resultsContainer.classList.remove('hidden');
+
+            } catch (error) {
+                // Display error
+                errorMessage.textContent = error.message;
+                errorContainer.classList.remove('hidden');
+                console.error('Error:', error);
+            } finally {
+                // Hide loader
+                loadingIndicator.classList.add('hidden');
+            }
+        });
+    </script>
+
 </body>
 </html>
