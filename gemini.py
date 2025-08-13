@@ -5,9 +5,6 @@ import google.generativeai as genai
 # Get the API key from environment variable
 api_key = os.getenv("GENAI_API_KEY")
 
-if not api_key:
-    raise ValueError("GENAI_API_KEY environment variable is not set.")
-
 genai.configure(api_key=api_key)
 
 MODEL_NAME = "gemini-2.5-flash"
@@ -95,6 +92,7 @@ in metadata also add JSON answer format if present.
     if not os.path.exists(file_path):
         with open(file_path, "w") as f:
             f.write("")
+    
     return json.loads(response.text)
 
 SYSTEM_PROMPT2 = """
@@ -153,5 +151,6 @@ lastly follow answer format and save answer of questions in result as JSON file.
             response_mime_type="application/json"
         )
     )
+
 
     return json.loads(response.text)

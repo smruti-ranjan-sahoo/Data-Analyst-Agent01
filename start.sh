@@ -18,6 +18,7 @@ echo "    - Create a public ngrok URL for your app"
 echo "=============================================="
 echo ""
 
+
 # ================= CREATE & ACTIVATE VENV =================
 if [ ! -d "venv" ]; then
     echo "Creating virtual environment..."
@@ -28,36 +29,73 @@ echo "Activating virtual environment..."
 # Activate venv depending on shell
 source venv/bin/activate
 
+# ================= ADD ENV VARIABLES PERMANENTLY =================
+if [ -f "env_variables.txt" ]; then
+    echo "Adding environment variables to ~/.bashrc ..."
+    while IFS='=' read -r key value; do
+        key=$(echo "$key" | tr -d '\r' | xargs)
+        value=$(echo "$value" | tr -d '\r' | xargs)
+        if [[ ! -z "$key" && ! "$key" =~ ^# ]]; then
+            # Only add if not already present
+            if ! grep -q "^export $key=" ~/.bashrc; then
+                echo "export $key=\"$value\"" >> ~/.bashrc
+            fi
+        fi
+    done < env_variables.txt
+    echo "Sourcing ~/.bashrc to apply changes..."
+    source ~/.bashrc
+fi
+# Flip first and second lines in env_variables.txt
+if [ -f "env_variables.txt" ]; then
+    mapfile -t lines < env_variables.txt
+    if [ "${#lines[@]}" -ge 2 ]; then
+        # Swap first and second lines
+        tmp="${lines[0]}"
+        lines[0]="${lines[1]}"
+        lines[1]="$tmp"
+        printf "%s\n" "${lines[@]}" > env_variables.txt
+    fi
+fi
+
+# Now set environment variables from the (possibly flipped) file
+if [ -f "env_variables.txt" ]; then
+    echo "Adding environment variables to ~/.bashrc ..."
+    while IFS='=' read -r key value; do
+        key=$(echo "$key" | tr -d '\r' | xargs)
+        value=$(echo "$value" | tr -d '\r' | xargs)
+        if [[ ! -z "$key" && ! "$key" =~ ^# ]]; then
+            if ! grep -q "^export $key=" ~/.bashrc; then
+                echo "export $key=\"$value\"" >> ~/.bashrc
+            fi
+        fi
+    done < <(cat env_variables.txt)
+    echo "Sourcing ~/.bashrc to apply changes..."
+    source ~/.bashrc
+fi
+echo "GENAI_API_KEY=$GENAI_API_KEY"
+echo "NGROK_AUTHTOKEN=$NGROK_AUTHTOKEN"
 
 # ================= GET CREDENTIALS =================
 # Google API Key
-if [ -n "$GENAI_API_KEY" ]; then
-    read -p "GENAI_API_KEY is already set. Do you want to change it? (y/n): " change_key
-    if [[ "$change_key" =~ ^[Yy]$ ]]; then
-        read -p "Enter your GENAI API key: " GENAI_API_KEY
-    fi
-else
+if [ -z "$GENAI_API_KEY" ]; then
     read -p "Enter your GENAI API key: " GENAI_API_KEY
 fi
 export GENAI_API_KEY=$GENAI_API_KEY
 
 # ngrok Auth Token
-if [ -n "$NGROK_AUTHTOKEN" ]; then
-    read -p "NGROK_AUTHTOKEN is already set. Do you want to change it? (y/n): " change_ngrok
-    if [[ "$change_ngrok" =~ ^[Yy]$ ]]; then
-        read -p "Enter your ngrok authtoken: " NGROK_AUTH
-    else
-        NGROK_AUTH=$NGROK_AUTHTOKEN
-    fi
-else
-    read -p "Enter your ngrok authtoken: " NGROK_AUTH
+if [ -z "$NGROK_AUTHTOKEN" ]; then
+    read -p "Enter your ngrok authtoken: " NGROK_AUTHTOKEN
 fi
-export NGROK_AUTHTOKEN=$NGROK_AUTH
+export NGROK_AUTHTOKEN=$NGROK_AUTHTOKEN
 
-# ================= INSTALL REQUIREMENTS =================
-echo "Installing dependencies from requirements.txt..."
-pip install -r requirements.txt
-
+# ================= INSTALL REQUIREMENTS (First time only) =================
+if [ ! -f ".deps_installed" ]; then
+    echo "Installing dependencies from requirements.txt (first time only)..."
+    pip install -r requirements.txt
+    touch .deps_installed
+else
+    echo "Dependencies already installed. Skipping pip install."
+fi
 # ================= INSTALL NGROK =================
 if ! command -v ngrok &> /dev/null; then
     echo "ngrok not found, installing..."
@@ -68,7 +106,7 @@ else
 fi
 
 # ================= CONFIGURE NGROK =================
-$NGROK_BIN config add-authtoken "$NGROK_AUTH"
+$NGROK_BIN config add-authtoken "$NGROK_AUTHTOKEN"
 
 # ================= DETECT APP FILE =================
 # Default to "app:main" unless a file called main.py exists
@@ -89,9 +127,9 @@ UVICORN_PID=$!
 # Trap Ctrl+C to stop uvicorn too
 trap "echo -e '\nStopping servers...'; kill $UVICORN_PID; exit" INT
 
-# Countdown timer (10 seconds)
+# Countdown timer (3 seconds)
 echo "Waiting for uvicorn to start..."
-for i in {10..1}; do
+for i in {3..1}; do
     echo -ne "Starting in $i seconds...\r"
     sleep 1
 done
@@ -99,4 +137,4 @@ echo -e "\nServer should be ready now."
 
 # ================= START NGROK (FOREGROUND) =================
 echo "Starting ngrok tunnel on port 8000..."
-$NGROK_BIN http 8000
+$NGROK_BIN http --url=surely-emerging-sheepdog.ngrok-free.app 8000
